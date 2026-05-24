@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - db-secret.yaml
+  - ../../infrastructure/databases/production
   - helmrelease.yaml
