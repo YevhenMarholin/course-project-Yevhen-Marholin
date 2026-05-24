@@ -688,6 +688,14 @@ git push origin main
 
 ```bash
 flux reconcile kustomization flux-system -n flux-system --with-source
+► annotating GitRepository flux-system in flux-system namespace
+✔ GitRepository annotated
+◎ waiting for GitRepository reconciliation
+✔ fetched revision main@sha1:6c2d7ef766504f4a988bc7849f99d5ec1092f9bf
+► annotating Kustomization flux-system in flux-system namespace
+✔ Kustomization annotated
+◎ waiting for Kustomization reconciliation
+✔ applied revision main@sha1:6c2d7ef766504f4a988bc7849f99d5ec1092f9bf
 ```
 
 ---
@@ -698,15 +706,16 @@ flux reconcile kustomization flux-system -n flux-system --with-source
 
 ```bash
 flux get helmreleases -A
+
 ```
 
 Результат:
 
 ```text
-NAMESPACE       NAME            REVISION   SUSPENDED   READY   MESSAGE
-flux-system     cloudnative-pg  0.28.2     False       True    Helm install succeeded
-staging         gitea           0.1.0      False       True    Helm install succeeded
-production      gitea           0.1.0      False       True    Helm install succeeded
+lux get helmreleases -A
+NAMESPACE       NAME    REVISION        SUSPENDED       READY   MESSAGE                                                                           
+production      gitea   0.1.0           False           True    Helm install succeeded for release production/gitea.v1 with chart gitea-app@0.1.0
+staging         gitea   0.1.0           False           True    Helm install succeeded for release staging/gitea.v1 with chart gitea-app@0.1.0  
 ```
 
 ## Kustomizations
@@ -718,8 +727,7 @@ flux get kustomizations -A
 Результат:
 
 ```text
-NAMESPACE       NAME          REVISION           SUSPENDED   READY   MESSAGE
-flux-system     flux-system   main@sha1:431fa1e1 False       True    Applied revision
+flux-system     flux-system     main@sha1:6c2d7ef7      False           True    Applied revision: main@sha1:6c2d7ef7
 ```
 
 ## Pods
@@ -731,17 +739,9 @@ kubectl get pods -A
 Результат:
 
 ```text
-NAMESPACE            NAME                                                   READY   STATUS    RESTARTS   AGE
-cnpg-system          cnpg-system-cloudnative-pg-6ccf6b4fd8-d7zcw            1/1     Running   0          2m
-flux-system          helm-controller-7bd48c8dfc-rfv2m                       1/1     Running   0          5m
-flux-system          kustomize-controller-86b794fcbf-96rtf                  1/1     Running   0          5m
-flux-system          notification-controller-76bb5947d4-zxbtf               1/1     Running   0          5m
-flux-system          source-controller-5fb95cbb75-ttsgk                     1/1     Running   0          5m
-ingress-nginx        ingress-nginx-controller-7b887fdf8-z4m9c               1/1     Running   0          39m
-staging              gitea-postgres-1                                       1/1     Running   0          1m
-staging              gitea                                                  1/1     Running   0          1m
-production           gitea-postgres-1                                       1/1     Running   0          1m
-production           gitea                                                  2/2     Running   0          1m
+production           gitea-6cdc48f4d9-mh2gh          1/1     Running
+production           gitea-6cdc48f4d9-t8btd          1/1     Running
+staging              gitea-cd6dbcb55-tmq7x           1/1     Running
 ```
 
 ## PostgreSQL clusters
@@ -753,9 +753,9 @@ kubectl get clusters.postgresql.cnpg.io -A
 Результат:
 
 ```text
-NAMESPACE    NAME             AGE   INSTANCES   READY   STATUS
-staging      gitea-postgres   1m    1           1       Cluster in healthy state
-production   gitea-postgres   1m    1           1       Cluster in healthy state
+NAMESPACE    NAME             AGE     INSTANCES   READY   STATUS               PRIMARY
+production   gitea-postgres   3m15s   1                   Cluster in healthy state   gitea-postgres-1
+staging      gitea-postgres   3m15s                       Cluster in healthy state   gitea-postgres-1
 ```
 
 ## Ingress
@@ -768,8 +768,8 @@ kubectl get ingress -A
 
 ```text
 NAMESPACE    NAME    CLASS   HOSTS                 ADDRESS     PORTS   AGE
-staging      gitea   nginx   gitea.staging.local   localhost   80      1m
-production   gitea   nginx   gitea.local           localhost   80      1m
+production   gitea   nginx   gitea.local           localhost   80      3m35s
+staging      gitea   nginx   gitea.staging.local   localhost   80      3m34s
 ```
 
 ## HPA
@@ -793,12 +793,19 @@ Staging:
 
 ```bash
 curl http://gitea.staging.local
+<!DOCTYPE html>
+<html lang="en-US">
+<title>Installation - Gitea: Git with a cup of tea</title>
 ```
 
 Production:
 
 ```bash
 curl http://gitea.local
+<!DOCTYPE html>
+<html lang="en-US">
+<title>Installation - Gitea: Git with a cup of tea</title>
+
 ```
 
 Також застосунок можна відкрити у браузері:
