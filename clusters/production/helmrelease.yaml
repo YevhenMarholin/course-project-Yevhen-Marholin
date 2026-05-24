@@ -13,18 +13,21 @@ spec:
         name: flux-system
         namespace: flux-system
   values:
-    replicaCount: 2
+    replicaCount: 1
+
     ingress:
       host: gitea.local
+
     resources:
       requests:
-        cpu: 200m
-        memory: 256Mi
+        cpu: 50m
+        memory: 128Mi
       limits:
-        cpu: 500m
-        memory: 512Mi
+        cpu: 100m
+        memory: 256Mi
+
     hpa:
       enabled: true
-      minReplicas: 2
-      maxReplicas: 5
+      minReplicas: 1
+      maxReplicas: 2
       cpuUtilization: 70
