@@ -258,6 +258,33 @@ flux bootstrap github \
 
 ```bash
 flux check
+► checking prerequisites
+✔ Kubernetes 1.33.1 >=1.33.0-0
+► checking version in cluster
+✔ distribution: flux-v2.8.8
+✔ bootstrapped: true
+► checking controllers
+✔ helm-controller: deployment ready
+► ghcr.io/fluxcd/helm-controller:v1.5.5
+✔ kustomize-controller: deployment ready
+► ghcr.io/fluxcd/kustomize-controller:v1.8.5
+✔ notification-controller: deployment ready
+► ghcr.io/fluxcd/notification-controller:v1.8.4
+✔ source-controller: deployment ready
+► ghcr.io/fluxcd/source-controller:v1.8.5
+► checking crds
+✔ alerts.notification.toolkit.fluxcd.io/v1beta3
+✔ buckets.source.toolkit.fluxcd.io/v1
+✔ externalartifacts.source.toolkit.fluxcd.io/v1
+✔ gitrepositories.source.toolkit.fluxcd.io/v1
+✔ helmcharts.source.toolkit.fluxcd.io/v1
+✔ helmreleases.helm.toolkit.fluxcd.io/v2
+✔ helmrepositories.source.toolkit.fluxcd.io/v1
+✔ kustomizations.kustomize.toolkit.fluxcd.io/v1
+✔ ocirepositories.source.toolkit.fluxcd.io/v1
+✔ providers.notification.toolkit.fluxcd.io/v1beta3
+✔ receivers.notification.toolkit.fluxcd.io/v1
+✔ all checks passed
 ```
 
 ---
