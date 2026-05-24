@@ -2,7 +2,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: gitea
-  namespace: staging
+  namespace: production
 spec:
   interval: 5m
   chart:
@@ -13,9 +13,18 @@ spec:
         name: flux-system
         namespace: flux-system
   values:
-    replicaCount: 1
+    replicaCount: 2
     ingress:
-      host: gitea.staging.local
-    resources: {}
+      host: gitea.local
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
     hpa:
-      enabled: false
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      cpuUtilization: 70
