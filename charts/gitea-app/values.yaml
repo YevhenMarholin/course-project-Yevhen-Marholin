@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: gitea/gitea
+  tag: "1.22"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: gitea.local
+
+resources: {}
+
+database:
+  host: gitea-postgres-rw
+  port: 5432
+  name: gitea
+  user: gitea
+  password: gitea-password
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 70
