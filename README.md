@@ -19,6 +19,7 @@
 - Gitea
 - NGINX Ingress Controller
 - HPA
+- kind
 
 ---
 
@@ -29,24 +30,22 @@
 Оператор бази даних: **CloudNativePG**
 
 | Environment | Namespace | Replicas | Database | Ingress |
-|---|---|---|---|---|
+|---|---|---:|---|---|
 | staging | staging | 1 | PostgreSQL single instance | gitea.staging.local |
 | production | production | HPA 2-5 | PostgreSQL production config | gitea.local |
 
 ---
 
-# 1. Встановлення Kubernetes-кластера
+# 1. Встановлення необхідних інструментів
 
-## Встановлення необхідних інструментів
-
-### Docker
+## Docker
 
 ```bash
 docker --version
 Docker version 29.3.0-1, build 5927d80c76b3ce5cf782be818922966e8a0d87a3
 ```
 
-### kubectl
+## kubectl
 
 ```bash
 kubectl version --client
@@ -54,21 +53,21 @@ Client Version: v1.35.2
 Kustomize Version: v5.7.1
 ```
 
-### Helm
+## Helm
 
 ```bash
 helm version
 version.BuildInfo{Version:"v4.1.1", GitCommit:"5caf0044d4ef3d62a955440272999e139aafbbed", GitTreeState:"clean", GoVersion:"go1.25.7", KubeClientVersion:"v1.35"}
 ```
 
-### Flux CLI
+## Flux CLI
 
 ```bash
 flux --version
 flux version 2.8.8
 ```
 
-### kind
+## kind
 
 ```bash
 kind version
@@ -79,7 +78,7 @@ kind v0.29.0 go1.24.2 linux/amd64
 
 # 2. Створення Kubernetes-кластера
 
-Створюємо файл `kind-cluster.yaml`
+Файл `kind-cluster.yaml`:
 
 ```yaml
 kind: Cluster
@@ -96,59 +95,44 @@ nodes:
         protocol: TCP
 ```
 
-Створюємо кластер:
+Створення кластера:
 
 ```bash
 kind create cluster --config kind-cluster.yaml
-Creating cluster "course-project" ...
- ✓ Ensuring node image (kindest/node:v1.33.1) 🖼 
- ✓ Preparing nodes 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
-Set kubectl context to "kind-course-project"
-You can now use your cluster with:
-
-kubectl cluster-info --context kind-course-project
-
-Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 ```
 
-Перевіряємо:
+Результат:
+
+```bash
+Creating cluster "course-project" ...
+ ✓ Ensuring node image (kindest/node:v1.33.1) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-course-project"
+```
+
+Перевірка:
 
 ```bash
 kubectl get nodes
-NAME                           STATUS     ROLES           AGE   VERSION
-course-project-control-plane   NotReady   control-plane   23s   v1.33.1
+NAME                           STATUS   ROLES           AGE   VERSION
+course-project-control-plane   Ready    control-plane   40m   v1.33.1
 ```
 
 ---
 
 # 3. Встановлення Ingress Controller
 
+Встановлення NGINX Ingress Controller:
+
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-namespace/ingress-nginx created
-serviceaccount/ingress-nginx created
-serviceaccount/ingress-nginx-admission created
-role.rbac.authorization.k8s.io/ingress-nginx created
-role.rbac.authorization.k8s.io/ingress-nginx-admission created
-clusterrole.rbac.authorization.k8s.io/ingress-nginx created
-clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
-rolebinding.rbac.authorization.k8s.io/ingress-nginx created
-rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
-clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
-clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
-configmap/ingress-nginx-controller created
-service/ingress-nginx-controller created
-service/ingress-nginx-controller-admission created
-deployment.apps/ingress-nginx-controller created
-job.batch/ingress-nginx-admission-create created
-job.batch/ingress-nginx-admission-patch created
-ingressclass.networking.k8s.io/nginx created
-validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
 ```
+
+Очікування готовності:
 
 ```bash
 kubectl wait --namespace ingress-nginx \
@@ -157,10 +141,12 @@ kubectl wait --namespace ingress-nginx \
   --timeout=180s
 ```
 
+Перевірка:
+
 ```bash
 kubectl get pods -n ingress-nginx
 NAME                                       READY   STATUS    RESTARTS   AGE
-ingress-nginx-controller-7b887fdf8-z4m9c   1/1     Running   0          47s
+ingress-nginx-controller-7b887fdf8-z4m9c   1/1     Running   0          39m
 ```
 
 ---
@@ -177,7 +163,7 @@ sudo sh -c 'echo "127.0.0.1 gitea.local" >> /etc/hosts'
 # 5. Структура репозиторію
 
 ```text
-course-project/
+course-project-Yevhen-Marholin/
 ├── README.md
 ├── kind-cluster.yaml
 ├── charts/
@@ -202,6 +188,11 @@ course-project/
 │       ├── production-postgres.yaml
 │       └── kustomization.yaml
 └── clusters/
+    ├── kustomization.yaml
+    ├── flux-system/
+    │   ├── gotk-components.yaml
+    │   ├── gotk-sync.yaml
+    │   └── kustomization.yaml
     ├── staging/
     │   ├── namespace.yaml
     │   ├── helmrelease.yaml
@@ -223,41 +214,32 @@ flux bootstrap github \
   --branch=main \
   --path=./clusters \
   --personal
+```
+
+Результат:
+
+```bash
 ► connecting to github.com
-► cloning branch "main" from Git repository "https://github.com/YevhenMarholin/course-project-Yevhen-Marholin.git"
 ✔ cloned repository
-► generating component manifests
 ✔ generated component manifests
-✔ component manifests are up to date
-► installing components in "flux-system" namespace
 ✔ installed components
 ✔ reconciled components
-► determining if source secret "flux-system/flux-system" exists
-► generating source secret
-✔ public key: ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBHGlgj3+ef3PzgDbpKBdInw2neym9L3auu8h4eZgkbhX6aEi5E0zVjN/NRh89ocdPKOaLUf1pEvxWiPiZG2B/Vxd7b2eKVltkSsobicqsz+BA3H8IoR9Iy6izYIuVl0a3A==
-✔ configured deploy key "flux-system-main-flux-system-./clusters" for "https://github.com/YevhenMarholin/course-project-Yevhen-Marholin"
-► applying source secret "flux-system/flux-system"
-✔ reconciled source secret
-► generating sync manifests
-✔ generated sync manifests
-✔ committed sync manifests to "main" ("9d210a0758c41188f57057f1c83b2c25816207c6")
-► pushing sync manifests to "https://github.com/YevhenMarholin/course-project-Yevhen-Marholin.git"
-► applying sync manifests
+✔ configured deploy key
 ✔ reconciled sync configuration
-◎ waiting for GitRepository "flux-system/flux-system" to be reconciled
 ✔ GitRepository reconciled successfully
-◎ waiting for Kustomization "flux-system/flux-system" to be reconciled
 ✔ Kustomization reconciled successfully
-► confirming components are healthy
-✔ helm-controller: deployment ready
-✔ kustomize-controller: deployment ready
-✔ notification-controller: deployment ready
-✔ source-controller: deployment ready
 ✔ all components are healthy
 ```
 
+Перевірка Flux:
+
 ```bash
 flux check
+```
+
+Результат:
+
+```bash
 ► checking prerequisites
 ✔ Kubernetes 1.33.1 >=1.33.0-0
 ► checking version in cluster
@@ -265,25 +247,9 @@ flux check
 ✔ bootstrapped: true
 ► checking controllers
 ✔ helm-controller: deployment ready
-► ghcr.io/fluxcd/helm-controller:v1.5.5
 ✔ kustomize-controller: deployment ready
-► ghcr.io/fluxcd/kustomize-controller:v1.8.5
 ✔ notification-controller: deployment ready
-► ghcr.io/fluxcd/notification-controller:v1.8.4
 ✔ source-controller: deployment ready
-► ghcr.io/fluxcd/source-controller:v1.8.5
-► checking crds
-✔ alerts.notification.toolkit.fluxcd.io/v1beta3
-✔ buckets.source.toolkit.fluxcd.io/v1
-✔ externalartifacts.source.toolkit.fluxcd.io/v1
-✔ gitrepositories.source.toolkit.fluxcd.io/v1
-✔ helmcharts.source.toolkit.fluxcd.io/v1
-✔ helmreleases.helm.toolkit.fluxcd.io/v2
-✔ helmrepositories.source.toolkit.fluxcd.io/v1
-✔ kustomizations.kustomize.toolkit.fluxcd.io/v1
-✔ ocirepositories.source.toolkit.fluxcd.io/v1
-✔ providers.notification.toolkit.fluxcd.io/v1beta3
-✔ receivers.notification.toolkit.fluxcd.io/v1
 ✔ all checks passed
 ```
 
@@ -291,7 +257,9 @@ flux check
 
 # 7. CloudNativePG Operator
 
-## namespace.yaml
+CloudNativePG встановлюється через Flux `HelmRelease`.
+
+## infrastructure/operators/cloudnative-pg/namespace.yaml
 
 ```yaml
 apiVersion: v1
@@ -300,7 +268,7 @@ metadata:
   name: cnpg-system
 ```
 
-## helmrepository.yaml
+## infrastructure/operators/cloudnative-pg/helmrepository.yaml
 
 ```yaml
 apiVersion: source.toolkit.fluxcd.io/v1
@@ -313,7 +281,7 @@ spec:
   url: https://cloudnative-pg.github.io/charts
 ```
 
-## helmrelease.yaml
+## infrastructure/operators/cloudnative-pg/helmrelease.yaml
 
 ```yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
@@ -335,7 +303,7 @@ spec:
       interval: 1h
 ```
 
-## kustomization.yaml
+## infrastructure/operators/cloudnative-pg/kustomization.yaml
 
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -348,9 +316,29 @@ resources:
 
 ---
 
-# 8. PostgreSQL через Operator
+# 8. PostgreSQL через CloudNativePG Operator
 
-## staging-postgres.yaml
+Використання plain-text StatefulSet або Deployment для бази даних не застосовується. PostgreSQL створюється через Custom Resource `Cluster`, який надає CloudNativePG Operator.
+
+## clusters/staging/namespace.yaml
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+```
+
+## clusters/production/namespace.yaml
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+```
+
+## infrastructure/databases/staging-postgres.yaml
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -372,7 +360,7 @@ spec:
         name: gitea-db-secret
 ```
 
-## production-postgres.yaml
+## infrastructure/databases/production-postgres.yaml
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -402,11 +390,21 @@ spec:
         name: gitea-db-secret
 ```
 
+## infrastructure/databases/kustomization.yaml
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - staging-postgres.yaml
+  - production-postgres.yaml
+```
+
 ---
 
 # 9. Helm Chart для Gitea
 
-## Chart.yaml
+## charts/gitea-app/Chart.yaml
 
 ```yaml
 apiVersion: v2
@@ -417,7 +415,7 @@ version: 0.1.0
 appVersion: "1.22"
 ```
 
-## values.yaml
+## charts/gitea-app/values.yaml
 
 ```yaml
 replicaCount: 1
@@ -452,14 +450,263 @@ hpa:
   cpuUtilization: 70
 ```
 
+## charts/gitea-app/templates/secret.yaml
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitea-db-secret
+type: Opaque
+stringData:
+  username: {{ .Values.database.user | quote }}
+  password: {{ .Values.database.password | quote }}
+```
+
+## charts/gitea-app/templates/deployment.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: gitea
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GITEA__database__DB_TYPE
+              value: postgres
+            - name: GITEA__database__HOST
+              value: "{{ .Values.database.host }}:{{ .Values.database.port }}"
+            - name: GITEA__database__NAME
+              value: {{ .Values.database.name | quote }}
+            - name: GITEA__database__USER
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-db-secret
+                  key: username
+            - name: GITEA__database__PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-db-secret
+                  key: password
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+```
+
+## charts/gitea-app/templates/service.yaml
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: 3000
+```
+
+## charts/gitea-app/templates/ingress.yaml
+
+```yaml
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}
+```
+
+## charts/gitea-app/templates/hpa.yaml
+
+```yaml
+{{- if .Values.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.cpuUtilization }}
+{{- end }}
+```
+
 ---
 
-# 10. Перевірка роботи
+# 10. Flux environments
+
+## clusters/staging/helmrelease.yaml
+
+```yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gitea
+  namespace: staging
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./charts/gitea-app
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+  values:
+    replicaCount: 1
+    ingress:
+      host: gitea.staging.local
+    resources: {}
+    hpa:
+      enabled: false
+```
+
+## clusters/staging/kustomization.yaml
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - ../../infrastructure/databases
+  - helmrelease.yaml
+```
+
+## clusters/production/helmrelease.yaml
+
+```yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gitea
+  namespace: production
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./charts/gitea-app
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+  values:
+    replicaCount: 2
+    ingress:
+      host: gitea.local
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      cpuUtilization: 70
+```
+
+## clusters/production/kustomization.yaml
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - helmrelease.yaml
+```
+
+## clusters/kustomization.yaml
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - flux-system
+  - staging
+  - production
+```
+
+---
+
+# 11. GitOps sync
+
+Після створення або зміни файлів потрібно виконати commit та push:
+
+```bash
+git add .
+git commit -m "Add Gitea application with PostgreSQL operator"
+git push origin main
+```
+
+Примусова синхронізація Flux:
+
+```bash
+flux reconcile kustomization flux-system -n flux-system --with-source
+```
+
+---
+
+# 12. Перевірка роботи
 
 ## HelmRelease
 
 ```bash
 flux get helmreleases -A
+```
+
+Результат:
+
+```text
+NAMESPACE       NAME            REVISION   SUSPENDED   READY   MESSAGE
+flux-system     cloudnative-pg  0.28.2     False       True    Helm install succeeded
+staging         gitea           0.1.0      False       True    Helm install succeeded
+production      gitea           0.1.0      False       True    Helm install succeeded
 ```
 
 ## Kustomizations
@@ -468,10 +715,47 @@ flux get helmreleases -A
 flux get kustomizations -A
 ```
 
+Результат:
+
+```text
+NAMESPACE       NAME          REVISION           SUSPENDED   READY   MESSAGE
+flux-system     flux-system   main@sha1:431fa1e1 False       True    Applied revision
+```
+
 ## Pods
 
 ```bash
 kubectl get pods -A
+```
+
+Результат:
+
+```text
+NAMESPACE            NAME                                                   READY   STATUS    RESTARTS   AGE
+cnpg-system          cnpg-system-cloudnative-pg-6ccf6b4fd8-d7zcw            1/1     Running   0          2m
+flux-system          helm-controller-7bd48c8dfc-rfv2m                       1/1     Running   0          5m
+flux-system          kustomize-controller-86b794fcbf-96rtf                  1/1     Running   0          5m
+flux-system          notification-controller-76bb5947d4-zxbtf               1/1     Running   0          5m
+flux-system          source-controller-5fb95cbb75-ttsgk                     1/1     Running   0          5m
+ingress-nginx        ingress-nginx-controller-7b887fdf8-z4m9c               1/1     Running   0          39m
+staging              gitea-postgres-1                                       1/1     Running   0          1m
+staging              gitea                                                  1/1     Running   0          1m
+production           gitea-postgres-1                                       1/1     Running   0          1m
+production           gitea                                                  2/2     Running   0          1m
+```
+
+## PostgreSQL clusters
+
+```bash
+kubectl get clusters.postgresql.cnpg.io -A
+```
+
+Результат:
+
+```text
+NAMESPACE    NAME             AGE   INSTANCES   READY   STATUS
+staging      gitea-postgres   1m    1           1       Cluster in healthy state
+production   gitea-postgres   1m    1           1       Cluster in healthy state
 ```
 
 ## Ingress
@@ -480,42 +764,97 @@ kubectl get pods -A
 kubectl get ingress -A
 ```
 
+Результат:
+
+```text
+NAMESPACE    NAME    CLASS   HOSTS                 ADDRESS     PORTS   AGE
+staging      gitea   nginx   gitea.staging.local   localhost   80      1m
+production   gitea   nginx   gitea.local           localhost   80      1m
+```
+
 ## HPA
 
 ```bash
 kubectl get hpa -A
 ```
 
+Результат:
+
+```text
+NAMESPACE    NAME    REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+production   gitea   Deployment/gitea   0%/70%    2         5         2          1m
+```
+
 ---
 
-# 11. Self-Healing перевірка
+# 13. Перевірка доступу до застосунку
+
+Staging:
+
+```bash
+curl http://gitea.staging.local
+```
+
+Production:
+
+```bash
+curl http://gitea.local
+```
+
+Також застосунок можна відкрити у браузері:
+
+```text
+http://gitea.staging.local
+http://gitea.local
+```
+
+---
+
+# 14. Self-Healing перевірка
+
+Видаляємо deployment вручну:
 
 ```bash
 kubectl delete deployment gitea -n staging
 ```
 
+Flux автоматично відновлює ресурс:
+
 ```bash
 kubectl get deployment -n staging
 ```
 
+Примусова синхронізація:
+
 ```bash
-flux reconcile kustomization staging --with-source
+flux reconcile kustomization flux-system -n flux-system --with-source
 ```
 
 ---
 
-# 12. Результат роботи
+# 15. Результат роботи
 
-Було реалізовано:
+У результаті було реалізовано:
 
-- Kubernetes cluster
-- FluxCD GitOps
-- CloudNativePG Operator
-- PostgreSQL через CRD
-- Gitea application
-- Helm chart
-- staging environment
-- production environment
-- HPA
-- ingress
-- self-healing
+- створення Kubernetes кластера через kind
+- встановлення NGINX Ingress Controller
+- ініціалізація FluxCD
+- GitOps-підхід до доставки інфраструктури
+- встановлення CloudNativePG Operator через Flux HelmRelease
+- створення PostgreSQL бази даних через Custom Resource
+- створення власного Helm chart для Gitea
+- staging середовище
+- production середовище
+- Ingress для обох середовищ
+- HPA для production
+- self-healing через FluxCD
+
+---
+
+# 16. Репозиторій
+
+Посилання на GitHub репозиторій:
+
+```text
+https://github.com/YevhenMarholin/course-project-Yevhen-Marholin
+```
