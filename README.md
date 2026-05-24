@@ -813,6 +813,8 @@ curl http://gitea.local
 ```text
 http://gitea.staging.local
 http://gitea.local
+![alt text](image.png)
+![alt text](image-1.png)
 ```
 
 ---
@@ -829,12 +831,21 @@ Flux автоматично відновлює ресурс:
 
 ```bash
 kubectl get deployment -n staging
+gitea   1/1     1            1           3m8s
 ```
 
 Примусова синхронізація:
 
 ```bash
 flux reconcile kustomization flux-system -n flux-system --with-source
+ annotating GitRepository flux-system in flux-system namespace
+✔ GitRepository annotated
+◎ waiting for GitRepository reconciliation
+✔ fetched revision main@sha1:4d102e8eb8adbee89f499471ab7d3c3bb82841bc
+► annotating Kustomization flux-system in flux-system namespace
+✔ Kustomization annotated
+◎ waiting for Kustomization reconciliation
+✔ applied revision main@sha1:4d102e8eb8adbee89f499471ab7d3c3bb82841bc
 ```
 
 ---
@@ -855,13 +866,5 @@ flux reconcile kustomization flux-system -n flux-system --with-source
 - Ingress для обох середовищ
 - HPA для production
 - self-healing через FluxCD
-
+![alt text](image-2.png)
 ---
-
-# 16. Репозиторій
-
-Посилання на GitHub репозиторій:
-
-```text
-https://github.com/YevhenMarholin/course-project-Yevhen-Marholin
-```
